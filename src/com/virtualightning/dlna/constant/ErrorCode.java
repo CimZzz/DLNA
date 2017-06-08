@@ -1,8 +1,5 @@
 package com.virtualightning.dlna.constant;
 
-/**
- * Created by xjw04 on 17/5/31.
- */
 public interface ErrorCode {
     int HTTP_RES_ERROR = 0;//HTTP服务器响应异常
     int HTTP_RECV_CON_ERROR = 1;//HTTP服务器接收连接异常
@@ -21,4 +18,8 @@ public interface ErrorCode {
     int CON_SEEK_ERROR = 406;//定位播放位置请求连接异常
 
     int SERVER_INFO_FAILED = 500;//获取服务详细信息失败
+    int SERVER_INFO_NO_DECODER_FAILED = 501;//获取服务详细信息失败，没有找到解析器
+
+
+    int DEVICE_INFO_DECODE_FAILED = 600;//解析设备文档失败
 }

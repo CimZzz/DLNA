@@ -1,4 +1,4 @@
-package com.virtualightning.dlna.interfaces;
+package com.virtualightning.dlna.interfaces.option;
 
 import java.io.InputStream;
 

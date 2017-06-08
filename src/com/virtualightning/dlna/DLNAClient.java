@@ -3,7 +3,10 @@ package com.virtualightning.dlna;
 import java.io.File;
 
 import com.virtualightning.dlna.factory.ThreadPoolFactory;
-import com.virtualightning.dlna.interfaces.*;
+import com.virtualightning.dlna.interfaces.callback.*;
+import com.virtualightning.dlna.interfaces.option.DeviceFilter;
+import com.virtualightning.dlna.interfaces.option.InetAddressGetter;
+import com.virtualightning.dlna.interfaces.option.XmlDecoder;
 
 public class DLNAClient {
     private static final int DEFAULT_HTTP_PORT = 9090;//Default HTTP Server Port
@@ -31,9 +34,11 @@ public class DLNAClient {
     private int httpPort;//HTTP服务器监听端口
     private int unicastPort;//单播服务器监听端口
     ThreadPoolFactory threadPoolFactory;//线程池创建工厂
-    XmlDecoder<SubscribeEvent> subscribeEventXmlDecoder;//自定义订阅时间XML Decoder
-    InetAddressGetter inetAddressGetter;//获取地址方式接口
     DeviceFilter deviceFilter;//设备过滤器
+    XmlDecoder<SubscribeEvent> subscribeEventXmlDecoder;//自定义订阅事件XML Decoder
+    XmlDecoder<DeviceInfo> devDescDocXmlDecoder;//DDD文档XML Decoder
+    XmlDecoder<Service> servDescDocXmlDecoder;//SDD文档XML Decoder
+    InetAddressGetter inetAddressGetter;//获取地址方式接口
 
     /* DLNAClient 外部接口 */
     private OnBootstrapCompletedListener onBootstrapCompletedListener;//启动完成回调接口
@@ -146,7 +151,6 @@ public class DLNAClient {
     }
 
     private void clearInterfaces() {
-        threadPoolFactory = null;
         onBootstrapCompletedListener = null;
         onDeviceQuitListener = null;
         onErrorListener = null;
@@ -154,8 +158,13 @@ public class DLNAClient {
         onResourceRouteListener = null;
         onServiceInfoListener = null;
         onSubscribeEventListener = null;
-        subscribeEventXmlDecoder = null;
+
+        threadPoolFactory = null;
         inetAddressGetter = null;
+        deviceFilter = null;
+        subscribeEventXmlDecoder = null;
+        devDescDocXmlDecoder = null;
+        servDescDocXmlDecoder = null;
     }
 
     /* 外部方法 */
@@ -190,7 +199,8 @@ public class DLNAClient {
         dlnaContext.execute(new Runnable() {
             @Override
             public void run() {
-                unicastServer.search(deviceType);
+                if(unicastServer != null)
+                    unicastServer.search(deviceType);
             }
         });
     }
@@ -216,18 +226,13 @@ public class DLNAClient {
     }
 
     //订阅服务
-    public void subscribe(final Service service) {
+    public void subscribe(Service service) {
         synchronized (this) {
             if(state < STATE_START_COMPLETED)
                 return;
         }
 
-        dlnaContext.execute(new Runnable() {
-            @Override
-            public void run() {
-                dlnaContext.subscribe(service);
-            }
-        });
+        dlnaContext.subscribe(service);
     }
 
     //取消订阅服务
@@ -237,12 +242,7 @@ public class DLNAClient {
                 return;
         }
 
-        dlnaContext.execute(new Runnable() {
-            @Override
-            public void run() {
-                dlnaContext.cancelSubscribe(service);
-            }
-        });
+        dlnaContext.cancelSubscribe(service);
     }
 
 

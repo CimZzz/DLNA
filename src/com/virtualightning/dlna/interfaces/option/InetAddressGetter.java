@@ -1,4 +1,4 @@
-package com.virtualightning.dlna.interfaces;
+package com.virtualightning.dlna.interfaces.option;
 
 public interface InetAddressGetter {
     String getInetAddress();

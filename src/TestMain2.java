@@ -4,7 +4,9 @@ import com.virtualightning.dlna.Service;
 import com.virtualightning.dlna.SubscribeEvent;
 import com.virtualightning.dlna.constant.DeviceType;
 import com.virtualightning.dlna.constant.SSDP;
-import com.virtualightning.dlna.interfaces.*;
+import com.virtualightning.dlna.interfaces.callback.*;
+import com.virtualightning.dlna.interfaces.option.DeviceFilter;
+import com.virtualightning.dlna.interfaces.option.InetAddressGetter;
 import com.virtualightning.dlna.soap.PauseCommand;
 import com.virtualightning.dlna.soap.PlayCommand;
 import com.virtualightning.dlna.soap.SetURICommand;
@@ -79,7 +81,7 @@ public class TestMain2 {
         client.setOnServiceInfoListener(new OnServiceInfoListener() {
             @Override
             public void onServiceInfo(Service service) {
-                System.out.println("获取服务成功 : Var Count : " + service.getStateVariableMap().size());
+//                System.out.println("获取服务成功 : Var Count : " + service.getStateVariableMap().size());
             }
         });
 

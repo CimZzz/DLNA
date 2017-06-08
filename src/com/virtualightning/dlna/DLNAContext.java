@@ -14,10 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.virtualightning.dlna.factory.ThreadPoolFactory;
-import com.virtualightning.dlna.interfaces.DeviceFilter;
-import com.virtualightning.dlna.interfaces.InetAddressGetter;
-import com.virtualightning.dlna.interfaces.XmlDecoder;
+import com.virtualightning.dlna.constant.ErrorCode;
+import com.virtualightning.dlna.interfaces.option.DeviceFilter;
+import com.virtualightning.dlna.interfaces.option.InetAddressGetter;
+import com.virtualightning.dlna.interfaces.option.XmlDecoder;
 import com.virtualightning.dlna.tools.BoundedInputStream;
 
 import static com.virtualightning.dlna.constant.ErrorCode.SERVER_INFO_FAILED;
@@ -25,8 +25,6 @@ import static com.virtualightning.dlna.constant.ErrorCode.SERVER_INFO_FAILED;
 public class DLNAContext {
     private DLNAClient dlnaClient;//DLNA客户端
     private ExecutorService threadPool;//线程池
-    private XmlDecoder<SubscribeEvent> subscribeEventXmlDecoder;//订阅事件XML Decoder
-    private DeviceFilter deviceFilter;//设备过滤器
 
     boolean useDebugMode;//是否使用Debug模式
     String hostAddr;//主机地址
@@ -72,8 +70,6 @@ public class DLNAContext {
         if(dlnaClient.threadPoolFactory == null)
             threadPool = Executors.newCachedThreadPool();
         else threadPool = dlnaClient.threadPoolFactory.createThreadPool();
-        subscribeEventXmlDecoder = dlnaClient.subscribeEventXmlDecoder;
-        deviceFilter = dlnaClient.deviceFilter;
 
         /*3秒执行一次*/
         timeOutTimer.schedule(timerTask,0,3000);
@@ -110,8 +106,6 @@ public class DLNAContext {
             timerTask = null;
         }
         dlnaClient = null;
-        subscribeEventXmlDecoder = null;
-        deviceFilter = null;
         devicesPool.clear();
         subscribePool.clear();
     }
@@ -131,7 +125,7 @@ public class DLNAContext {
                     connection = new SimpleHTTPConnection(true);
                     connection.setMethod("POST");
                     connection.setSubUrl(service.controlURL);
-                    connection.connect(service.deviceInfo.IP, service.deviceInfo.port);
+                    connection.connect(service.deviceInfo.getIP(), service.deviceInfo.getPort());
                     connection.addRequestProperty("Content-Type", "text/xml; charset=\"utf-8\"");
                     connection.addRequestProperty("SOAPACTION","\""+soapCommand.serviceType + "#" + soapCommand.actionName +"\"");
                     soapCommand.writeCommand(connection.getOutputStream());
@@ -164,13 +158,18 @@ public class DLNAContext {
         execute(new Runnable() {
             @Override
             public void run() {
+                XmlDecoder<Service> decoder = getServDescDocXmlDecoder();
+                if(decoder == null) {
+                    error(ErrorCode.SERVER_INFO_NO_DECODER_FAILED,null);
+                    return;
+                }
                 HttpURLConnection connection = null;
                 try {
                     String path = service.SCPDURL;
                     if(path.charAt(0) != '/')
                         path = '/' + path;
 
-                    path = service.deviceInfo.host + path;
+                    path = service.deviceInfo.getHost() + path;
                     connection = (HttpURLConnection) new URL(path).openConnection();
                     connection.setRequestMethod("GET");
                     connection.setConnectTimeout(5000);
@@ -181,7 +180,6 @@ public class DLNAContext {
                     BoundedInputStream boundedInputStream = new BoundedInputStream(connection.getInputStream()
                             ,Long.parseLong(connection.getHeaderField("Content-Length")));
 
-                    XmlDecoder<Service> decoder = new XmlSDDHandler(service);
                     if(!decoder.decoderXMLStream(null,boundedInputStream)) {
                         error(SERVER_INFO_FAILED,null,service);
                         return;
@@ -201,56 +199,59 @@ public class DLNAContext {
 
     //发送订阅事件
     void subscribe(Service service) {
-
-        if(service.checkSubscribingState(true))
-            return;
-
-        if(!service.isNeedSubscribe()) {
-            renewSubscribe(service);
-            return;
-        }
-
-        SubscribeEvent subscribeEvent = new SubscribeEvent();
-
-        SimpleHTTPConnection connection = null;
-        try {
-            connection = new SimpleHTTPConnection(false);
-            connection.setMethod("SUBSCRIBE");
-            connection.setSubUrl(service.eventSubURL);
-            connection.connect(service.deviceInfo.IP,service.deviceInfo.port);
-            if(dlnaClient == null)
+        execute(new Runnable() {
+            @Override
+            public void run() {if(service.checkSubscribingState(true))
                 return;
-            connection.addRequestProperty("CALLBACK", "<http://" + hostAddr + ":" + dlnaClient.getHTTPPort() + "/SUBSCRIBE/CallBack/>");
-            connection.addRequestProperty("NT", "upnp:event");
-            connection.addRequestProperty("TIMEOUT","Second-3600");
-            connection.outputCompleted();
 
-            HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream(),true);
-            if(httpHeader == null)
-                subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_FAILED;
-            else if(httpHeader.methodPath.equals("200")) {
-                String timeOutStr = httpHeader.otherHeaders.get("TIMEOUT").trim();
-                service.acceptLocker();
-                service.subscribe(
-                        httpHeader.otherHeaders.get("SID").trim()
-                        ,System.currentTimeMillis()
-                        ,Long.parseLong(timeOutStr.substring(timeOutStr.indexOf('-') + 1 , timeOutStr.length())) * 1000L);
+                if(!service.isNeedSubscribe()) {
+                    renewSubscribe(service);
+                    return;
+                }
 
-                subscribePool.put(service.getSubscribeId(), service);
-                subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_SUCCESS;
+                SubscribeEvent subscribeEvent = new SubscribeEvent();
+
+                SimpleHTTPConnection connection = null;
+                try {
+                    connection = new SimpleHTTPConnection(false);
+                    connection.setMethod("SUBSCRIBE");
+                    connection.setSubUrl(service.eventSubURL);
+                    connection.connect(service.deviceInfo.getIP(), service.deviceInfo.getPort());
+                    if(dlnaClient == null)
+                        return;
+                    connection.addRequestProperty("CALLBACK", "<http://" + hostAddr + ":" + dlnaClient.getHTTPPort() + "/SUBSCRIBE/CallBack/>");
+                    connection.addRequestProperty("NT", "upnp:event");
+                    connection.addRequestProperty("TIMEOUT","Second-3600");
+                    connection.outputCompleted();
+
+                    HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream(),true);
+                    if(httpHeader == null)
+                        subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_FAILED;
+                    else if(httpHeader.methodPath.equals("200")) {
+                        String timeOutStr = httpHeader.otherHeaders.get("TIMEOUT").trim();
+                        service.acceptLocker();
+                        service.subscribe(
+                                httpHeader.otherHeaders.get("SID").trim()
+                                ,System.currentTimeMillis()
+                                ,Long.parseLong(timeOutStr.substring(timeOutStr.indexOf('-') + 1 , timeOutStr.length())) * 1000L);
+
+                        subscribePool.put(service.getSubscribeId(), service);
+                        subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_SUCCESS;
+                    }
+                    else subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_FAILED;
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_CON_FAILED;
+                } finally {
+                    service.releaseLocker();
+                    if(connection != null)
+                        connection.close();
+                    service.checkSubscribingState(false);
+                    subscribeEvent(service,subscribeEvent);
+                }
             }
-            else subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_FAILED;
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_CON_FAILED;
-        } finally {
-            service.releaseLocker();
-            if(connection != null)
-                connection.close();
-            service.checkSubscribingState(false);
-            subscribeEvent(service,subscribeEvent);
-        }
+        });
     }
 
     //发送更新订阅事件
@@ -263,7 +264,7 @@ public class DLNAContext {
             connection = new SimpleHTTPConnection(false);
             connection.setMethod("SUBSCRIBE");
             connection.setSubUrl(service.eventSubURL);
-            connection.connect(service.deviceInfo.IP,service.deviceInfo.port);
+            connection.connect(service.deviceInfo.getIP(), service.deviceInfo.getPort());
             connection.addRequestProperty("TIMEOUT","Second-3600");
             connection.addRequestProperty("Sid",subscribeId);
             connection.outputCompleted();
@@ -295,40 +296,44 @@ public class DLNAContext {
 
     //发送取消订阅事件
     void cancelSubscribe(Service service) {
-        boolean checkState = service.checkCancelSubscribeState(true);
+        execute(new Runnable() {
+            @Override
+            public void run() {boolean checkState = service.checkCancelSubscribeState(true);
 
-        if(checkState)
-            return;
+                if(checkState)
+                    return;
 
-        service.acceptLocker();
-        String subscribeId = service.cancelSubscribe();
-        subscribePool.remove(subscribeId);
-        service.releaseLocker();
+                service.acceptLocker();
+                String subscribeId = service.cancelSubscribe();
+                subscribePool.remove(subscribeId);
+                service.releaseLocker();
 
 
-        SubscribeEvent subscribeEvent = new SubscribeEvent();
-        SimpleHTTPConnection connection = null;
-        try {
-            connection = new SimpleHTTPConnection(false);
-            connection.setMethod("UNSUBSCRIBE");
-            connection.setSubUrl(service.eventSubURL);
-            connection.connect(service.deviceInfo.IP,service.deviceInfo.port);
-            connection.addRequestProperty("Sid",subscribeId);
-            connection.outputCompleted();
+                SubscribeEvent subscribeEvent = new SubscribeEvent();
+                SimpleHTTPConnection connection = null;
+                try {
+                    connection = new SimpleHTTPConnection(false);
+                    connection.setMethod("UNSUBSCRIBE");
+                    connection.setSubUrl(service.eventSubURL);
+                    connection.connect(service.deviceInfo.getIP(), service.deviceInfo.getPort());
+                    connection.addRequestProperty("Sid",subscribeId);
+                    connection.outputCompleted();
 
-            HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream());
-            if(httpHeader.methodPath.equals("200"))
-                subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_SUCCESS;
-             else
-                subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_FAILED;
-        } catch (IOException e) {
-            subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_CON_FAILED;
-        } finally {
-            if(connection != null)
-                connection.close();
-            service.checkCancelSubscribeState(false);
-            subscribeEvent(service,subscribeEvent);
-        }
+                    HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream());
+                    if(httpHeader.methodPath.equals("200"))
+                        subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_SUCCESS;
+                    else
+                        subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_FAILED;
+                } catch (IOException e) {
+                    subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_CON_FAILED;
+                } finally {
+                    if(connection != null)
+                        connection.close();
+                    service.checkCancelSubscribeState(false);
+                    subscribeEvent(service,subscribeEvent);
+                }
+            }
+        });
     }
 
     /* 代理方法 */
@@ -349,23 +354,25 @@ public class DLNAContext {
     //如果消息来源是多播，则会刷新激活时间
     void findNewDevice(DeviceInfo deviceInfo,boolean fromMulticast) {
         //过滤设备
+        DeviceFilter deviceFilter = getDeviceFilter();
+
         if(deviceFilter != null && !deviceFilter.isNeedDeviceType(deviceInfo,false))
             return;
 
         synchronized (deviceLocker) {
-            DeviceInfo existDevice = devicesPool.get(deviceInfo.USN);
-            if(existDevice != null && System.currentTimeMillis() - existDevice.lastActiveTime < existDevice.cacheTime) {
+            DeviceInfo existDevice = devicesPool.get(deviceInfo.getUSN());
+            if(existDevice != null && System.currentTimeMillis() - existDevice.getLastActiveTime() < existDevice.getCacheTime()) {
                 if(fromMulticast)
-                    existDevice.lastActiveTime = System.currentTimeMillis();
+                    existDevice.setLastActiveTime(System.currentTimeMillis());
                 return;
             }
 
-            devicesPool.put(deviceInfo.USN,deviceInfo);
+            devicesPool.put(deviceInfo.getUSN(),deviceInfo);
         }
 
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) new URL(deviceInfo.location).openConnection();
+            connection = (HttpURLConnection) new URL(deviceInfo.getLocation()).openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
@@ -375,13 +382,19 @@ public class DLNAContext {
             BoundedInputStream boundedInputStream = new BoundedInputStream(connection.getInputStream()
                     ,Long.parseLong(connection.getHeaderField("Content-Length")));
 
-            XmlDecoder<DeviceInfo> decoder = new XmlDDDHandler(deviceInfo);
-            if(!decoder.decoderXMLStream(null,boundedInputStream))
+            XmlDecoder<DeviceInfo> decoder = getDevDescDocXmlDecoder();
+
+            if(decoder == null)
+                decoder = new XmlDDDHandler(deviceInfo);
+
+            if(!decoder.decoderXMLStream(null,boundedInputStream)) {
+                error(ErrorCode.DEVICE_INFO_DECODE_FAILED,null);
                 return;
+            }
 
             if(deviceFilter != null && !deviceFilter.isNeedDeviceType(deviceInfo,true)) {
                 synchronized (deviceLocker) {
-                    devicesPool.remove(deviceInfo.USN);
+                    devicesPool.remove(deviceInfo.getUSN());
                     return;
                 }
             }
@@ -391,7 +404,7 @@ public class DLNAContext {
         } catch (IOException e) {
             //不做任何处理，视作未发现此设备
             synchronized (deviceLocker) {
-                devicesPool.remove(deviceInfo.USN);
+                devicesPool.remove(deviceInfo.getUSN());
             }
         } finally {
             if(connection != null)
@@ -403,12 +416,14 @@ public class DLNAContext {
     //设备注销
     void deviceQuit(DeviceInfo deviceInfo) {
         //过滤设备
+        DeviceFilter deviceFilter = getDeviceFilter();
+
         if(deviceFilter != null && !deviceFilter.isNeedDeviceType(deviceInfo,false))
             return;
 
         synchronized (deviceLocker) {
-            if(devicesPool.containsKey(deviceInfo.USN))
-                deviceInfo = devicesPool.remove(deviceInfo.USN);
+            if(devicesPool.containsKey(deviceInfo.getUSN()))
+                deviceInfo = devicesPool.remove(deviceInfo.getUSN());
             else return;
         }
 
@@ -422,9 +437,32 @@ public class DLNAContext {
             dlnaClient.subscribeEvent(service,event);
     }
 
+    //获取设备过滤接口
+    DeviceFilter getDeviceFilter() {
+        if(dlnaClient != null)
+            return dlnaClient.deviceFilter;
+        else return null;
+    }
+
     //获取订阅事件XML Decoder
     XmlDecoder<SubscribeEvent> getSubscribeEventXmlDecoder() {
-        return null;
+        if(dlnaClient != null)
+            return dlnaClient.subscribeEventXmlDecoder;
+        else return null;
+    }
+
+    //获取解析设备描述文档XML Decoder
+    XmlDecoder<DeviceInfo> getDevDescDocXmlDecoder() {
+        if(dlnaClient != null)
+            return dlnaClient.devDescDocXmlDecoder;
+        else return null;
+    }
+
+    //获取解析服务描述文档XML Decoder
+    XmlDecoder<Service> getServDescDocXmlDecoder() {
+        if(dlnaClient != null)
+            return dlnaClient.servDescDocXmlDecoder;
+        else return null;
     }
 
     //根据路径获取实际的资源文件

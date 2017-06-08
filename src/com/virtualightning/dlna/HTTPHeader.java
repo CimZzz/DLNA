@@ -65,15 +65,25 @@ public class HTTPHeader {
                         params.rangeEnd = -1L;
                     else params.rangeEnd = Long.parseLong(rangeArr[1]);
                     break;
-                default:
-                    if(otherUpper)
-                        params.otherHeaders.put(splitArray[0].toUpperCase(),splitArray[1].trim());
-                    else params.otherHeaders.put(splitArray[0],splitArray[1].trim());
-                    break;
 
             }
+            if(otherUpper)
+                params.otherHeaders.put(splitArray[0].toUpperCase(),splitArray[1].trim());
+            else params.otherHeaders.put(splitArray[0],splitArray[1].trim());
         }
 
         return params;
+    }
+
+    public String getMethod() {
+        return method;
+    }
+
+    public String getPath() {
+        return methodPath;
+    }
+
+    public String getHeader(String name) {
+        return otherHeaders.get(name);
     }
 }

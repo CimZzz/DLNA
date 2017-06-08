@@ -94,7 +94,5 @@ public class Service {
         return deviceInfo;
     }
 
-    public HashMap<String, StateVariable> getStateVariableMap() {
-        return stateVariableMap;
-    }
+
 }

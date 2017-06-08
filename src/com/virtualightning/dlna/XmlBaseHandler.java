@@ -11,7 +11,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import com.virtualightning.dlna.interfaces.XmlDecoder;
+import com.virtualightning.dlna.interfaces.option.XmlDecoder;
 import com.virtualightning.dlna.tools.XmlAnalyzeStream;
 
 public abstract class XmlBaseHandler<T> extends DefaultHandler implements XmlDecoder<T> {

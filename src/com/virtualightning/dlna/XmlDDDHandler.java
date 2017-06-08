@@ -25,13 +25,13 @@ public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
                 .addChildElement(new XmlAnalyzeStream("major",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.specMajorVersion = Integer.parseInt(value);
+                        deviceInfo.setSpecMajorVersion(Integer.parseInt(value));
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("minor",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.specMinorVersion = Integer.parseInt(value);
+                        deviceInfo.setSpecMinorVersion(Integer.parseInt(value));
                     }
                 }));
 
@@ -41,65 +41,59 @@ public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
                 .addChildElement(new XmlAnalyzeStream("friendlyName",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.friendlyName = value;
+                        deviceInfo.setFriendlyName(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("modelNumber",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.modelNumber = value;
+                        deviceInfo.setModelNumber(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("modelName",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.modelName = value;
+                        deviceInfo.setModelName(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("modelDescription",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.modelDescription = value;
+                        deviceInfo.setModelDescription(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("manufacturer",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.manufacturer = value;
+                        deviceInfo.setManufacturer(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("manufacturerURL",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.manufacturerURL = value;
+                        deviceInfo.setManufacturerURL(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("modelURL",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.modelURL = value;
+                        deviceInfo.setModelURL(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("serialNumber",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.serialNumber = value;
+                        deviceInfo.setSerialNumber(value);
                     }
                 }))
                 .addChildElement(new XmlAnalyzeStream("UDN",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.UUID = value;
+                        deviceInfo.setUUID(value);
                     }
                 }))
                 .addChildElement(iconList = new XmlAnalyzeStream("iconList",false))
-                .addChildElement(serviceList = new XmlAnalyzeStream("serviceList",false))
-                .addChildElement(new XmlAnalyzeStream.DefaultElement(true,new XmlAnalyzeStream.OnElementCallback(true) {
-                    @Override
-                    public void onElementValue(String value) {
-                        deviceInfo.otherDesc.put(getElementName(),value);
-                    }
-                }));
+                .addChildElement(serviceList = new XmlAnalyzeStream("serviceList",false));
 
 
         iconList
@@ -111,7 +105,7 @@ public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
 
                     @Override
                     public void onElementEnd() {
-                        deviceInfo.iconList.add(icon);
+                        deviceInfo.getIconList().add(icon);
                     }
                 }));
 
@@ -145,7 +139,7 @@ public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
                     public void onElementValue(String value) {
                         if(value.charAt(0) != '/')
                             value = '/' + value;
-                        icon.url = deviceInfo.host + value;
+                        icon.url = deviceInfo.getHost() + value;
                     }
                 }));
 
@@ -161,7 +155,7 @@ public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
 
                     @Override
                     public void onElementEnd() {
-                        deviceInfo.serviceMap.put(service.serviceType,service);
+                        deviceInfo.getServiceMap().put(service.serviceType,service);
                     }
                 }));
 

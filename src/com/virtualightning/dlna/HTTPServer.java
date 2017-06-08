@@ -11,7 +11,7 @@ import java.net.Socket;
 import java.util.HashMap;
 
 import com.virtualightning.dlna.constant.ErrorCode;
-import com.virtualightning.dlna.interfaces.XmlDecoder;
+import com.virtualightning.dlna.interfaces.option.XmlDecoder;
 
 /**
  * Created by CimZzz on 17/5/31.<br>
@@ -83,6 +83,7 @@ public class HTTPServer extends BaseServer {
                 String xml = DLNAAnalyzer.analyzeXMLFromStream(socketInput,params.contentLength);
                 //解析xml文件
                 if(xml != null) {
+                    System.out.println(xml);
                     SubscribeEvent event = new SubscribeEvent();
                     event.seq = seq;
                     event.actionId = SubscribeEvent.ACTION_SUBSCRIBE_RESPONSE;
