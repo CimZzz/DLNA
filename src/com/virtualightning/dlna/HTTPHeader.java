@@ -1,11 +1,11 @@
 package com.virtualightning.dlna;
 
 
-import com.virtualightning.dlna.tools.HeaderReader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+
+import com.virtualightning.dlna.tools.HeaderReader;
 
 /**
  * Created by CimZzz on 17/5/31.<br>
@@ -30,7 +30,7 @@ public class HTTPHeader {
         return analyzeParams(inputStream,null,false);
     }
 
-    static HTTPHeader analyzeParams(InputStream inputStream,boolean otherUpper) throws IOException {
+    static HTTPHeader analyzeParams(InputStream inputStream, boolean otherUpper) throws IOException {
         return analyzeParams(inputStream,null,otherUpper);
     }
 

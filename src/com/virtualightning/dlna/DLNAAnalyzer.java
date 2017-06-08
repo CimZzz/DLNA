@@ -1,8 +1,9 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.tools.BoundedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-import java.io.*;
+import com.virtualightning.dlna.tools.BoundedInputStream;
 
 public class DLNAAnalyzer {
 

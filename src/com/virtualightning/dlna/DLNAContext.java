@@ -1,11 +1,6 @@
 package com.virtualightning.dlna;
 
 
-import com.virtualightning.dlna.factory.ThreadPoolFactory;
-import com.virtualightning.dlna.interfaces.InetAddressGetter;
-import com.virtualightning.dlna.interfaces.XmlDecoder;
-import com.virtualightning.dlna.tools.BoundedInputStream;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -18,6 +13,11 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import com.virtualightning.dlna.factory.ThreadPoolFactory;
+import com.virtualightning.dlna.interfaces.InetAddressGetter;
+import com.virtualightning.dlna.interfaces.XmlDecoder;
+import com.virtualightning.dlna.tools.BoundedInputStream;
 
 import static com.virtualightning.dlna.constant.ErrorCode.SERVER_INFO_FAILED;
 
@@ -118,7 +118,7 @@ public class DLNAContext {
             threadPool.execute(runnable);
     }
 
-    void executeCommand(final Service service,final SoapCommand soapCommand) {
+    void executeCommand(final Service service, final SoapCommand soapCommand) {
         execute(new Runnable() {
             @Override
             public void run() {
@@ -192,13 +192,11 @@ public class DLNAContext {
 
     //发送订阅事件
     void subscribe(Service service) {
-        boolean isNeedSubscribe = service.isNeedSubscribe();
-        boolean checkState = service.checkSubscribingState(true);
 
-        if(checkState)
+        if(service.checkSubscribingState(true))
             return;
 
-        if(!isNeedSubscribe) {
+        if(!service.isNeedSubscribe()) {
             renewSubscribe(service);
             return;
         }
@@ -213,28 +211,32 @@ public class DLNAContext {
             connection.connect(service.deviceInfo.IP,service.deviceInfo.port);
             if(dlnaClient == null)
                 return;
-            connection.addRequestProperty("CALLBACK", "<http://" + hostAddr + ":" + dlnaClient.getHTTPPort() + "/SUBSCRIBE/CallBack />");
+            connection.addRequestProperty("CALLBACK", "<http://" + hostAddr + ":" + dlnaClient.getHTTPPort() + "/SUBSCRIBE/CallBack/>");
             connection.addRequestProperty("NT", "upnp:event");
             connection.addRequestProperty("TIMEOUT","Second-3600");
             connection.outputCompleted();
 
-            HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream());
-            if(httpHeader.methodPath.equals("200")) {
-                String timeOutStr = httpHeader.otherHeaders.get("Timeout").trim();
-                service.subscribeItem.subscribeId = httpHeader.otherHeaders.get("SID").trim();
-                service.subscribeItem.lastSubscribeTime = System.currentTimeMillis();
-                service.subscribeItem.timeOut = Long.parseLong(timeOutStr.substring(timeOutStr.indexOf('-') + 1 , timeOutStr.length())) * 1000L;
-
-                if(!service.checkCancelSubscribeState()) {
-                    subscribePool.put(service.subscribeItem.subscribeId, service);
-                    subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_SUCCESS;
-                } else subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_FAILED;
-            } else
+            HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream(),true);
+            if(httpHeader == null)
                 subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_FAILED;
+            else if(httpHeader.methodPath.equals("200")) {
+                String timeOutStr = httpHeader.otherHeaders.get("TIMEOUT").trim();
+                service.acceptLocker();
+                service.subscribe(
+                        httpHeader.otherHeaders.get("SID").trim()
+                        ,System.currentTimeMillis()
+                        ,Long.parseLong(timeOutStr.substring(timeOutStr.indexOf('-') + 1 , timeOutStr.length())) * 1000L);
+
+                subscribePool.put(service.getSubscribeId(), service);
+                subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_SUCCESS;
+            }
+            else subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_FAILED;
 
         } catch (IOException e) {
+            e.printStackTrace();
             subscribeEvent.actionId = SubscribeEvent.ACTION_SUBSCRIBE_CON_FAILED;
         } finally {
+            service.releaseLocker();
             if(connection != null)
                 connection.close();
             service.checkSubscribingState(false);
@@ -244,6 +246,7 @@ public class DLNAContext {
 
     //发送更新订阅事件
     private void renewSubscribe(Service service) {
+        String subscribeId = service.subscribeItem.subscribeId;
         SubscribeEvent subscribeEvent = new SubscribeEvent();
 
         SimpleHTTPConnection connection = null;
@@ -253,26 +256,27 @@ public class DLNAContext {
             connection.setSubUrl(service.eventSubURL);
             connection.connect(service.deviceInfo.IP,service.deviceInfo.port);
             connection.addRequestProperty("TIMEOUT","Second-3600");
-            connection.addRequestProperty("SID",service.subscribeItem.subscribeId);
+            connection.addRequestProperty("Sid",subscribeId);
             connection.outputCompleted();
 
-            HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream());
+            HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream(),true);
             if(httpHeader.methodPath.equals("200")) {
-                String timeOutStr = httpHeader.otherHeaders.get("Timeout").trim();
-                service.subscribeItem.subscribeId = httpHeader.otherHeaders.get("SID").trim();
-                service.subscribeItem.lastSubscribeTime = System.currentTimeMillis();
-                service.subscribeItem.timeOut = Long.parseLong(timeOutStr.substring(timeOutStr.indexOf('-') + 1 , timeOutStr.length())) * 1000L;
+                String timeOutStr = httpHeader.otherHeaders.get("TIMEOUT").trim();
+                service.acceptLocker();
+                service.subscribe(
+                        httpHeader.otherHeaders.get("SID").trim()
+                        ,System.currentTimeMillis()
+                        ,Long.parseLong(timeOutStr.substring(timeOutStr.indexOf('-') + 1 , timeOutStr.length())) * 1000L);
 
-                if(!service.checkCancelSubscribeState()) {
-                    subscribePool.put(service.subscribeItem.subscribeId, service);
-                    subscribeEvent.actionId = SubscribeEvent.ACTION_RENEW_SUBSCRIBE_SUCCESS;
-                } else subscribeEvent.actionId = SubscribeEvent.ACTION_RENEW_SUBSCRIBE_FAILED;
+                subscribePool.put(service.getSubscribeId(), service);
+                subscribeEvent.actionId = SubscribeEvent.ACTION_RENEW_SUBSCRIBE_SUCCESS;
             } else
                 subscribeEvent.actionId = SubscribeEvent.ACTION_RENEW_SUBSCRIBE_FAILED;
 
         } catch (IOException e) {
             subscribeEvent.actionId = SubscribeEvent.ACTION_RENEW_SUBSCRIBE_CON_FAILED;
         } finally {
+            service.releaseLocker();
             if(connection != null)
                 connection.close();
             service.checkSubscribingState(false);
@@ -287,6 +291,12 @@ public class DLNAContext {
         if(checkState)
             return;
 
+        service.acceptLocker();
+        String subscribeId = service.cancelSubscribe();
+        subscribePool.remove(subscribeId);
+        service.releaseLocker();
+
+
         SubscribeEvent subscribeEvent = new SubscribeEvent();
         SimpleHTTPConnection connection = null;
         try {
@@ -294,15 +304,13 @@ public class DLNAContext {
             connection.setMethod("UNSUBSCRIBE");
             connection.setSubUrl(service.eventSubURL);
             connection.connect(service.deviceInfo.IP,service.deviceInfo.port);
-            connection.addRequestProperty("SID",service.subscribeItem.subscribeId);
+            connection.addRequestProperty("Sid",subscribeId);
             connection.outputCompleted();
 
             HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream());
-            if(httpHeader.methodPath.equals("200")) {
-                subscribePool.remove(service.subscribeItem.subscribeId);
-                service.subscribeItem = null;
+            if(httpHeader.methodPath.equals("200"))
                 subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_SUCCESS;
-            } else
+             else
                 subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_FAILED;
         } catch (IOException e) {
             subscribeEvent.actionId = SubscribeEvent.ACTION_CANCEL_SUBSCRIBE_CON_FAILED;

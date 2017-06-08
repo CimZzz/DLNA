@@ -1,7 +1,9 @@
 package com.virtualightning.dlna;
 
-import org.xml.sax.helpers.AttributesImpl;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+
+import java.io.DataOutputStream;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -9,7 +11,6 @@ import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.transform.stream.StreamResult;
-import java.io.DataOutputStream;
 
 public abstract class SoapCommand {
     protected final String serviceType;

@@ -1,9 +1,10 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.tools.XmlAnalyzeStream;
 import org.xml.sax.Attributes;
 
 import java.util.HashMap;
+
+import com.virtualightning.dlna.tools.XmlAnalyzeStream;
 
 
 public class XmlEventHandler extends XmlBaseHandler<SubscribeEvent> {
@@ -31,7 +32,7 @@ public class XmlEventHandler extends XmlBaseHandler<SubscribeEvent> {
     }
 
     @Override
-    XmlAnalyzeStream.AnalyzerChain getAnalyzerChain() {
+    protected XmlAnalyzeStream.AnalyzerChain getAnalyzerChain() {
         return analyzerChain;
     }
 }

@@ -3,6 +3,7 @@ package com.virtualightning.dlna.tools;
 
 public class TimeUtils {
     public static String millis2Str(long millis) {
+        millis = millis / 1000;
         long second = millis % 60;
         millis /= 60;
         long minute = millis % 60;

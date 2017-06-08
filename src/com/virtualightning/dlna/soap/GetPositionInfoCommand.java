@@ -1,11 +1,11 @@
 package com.virtualightning.dlna.soap;
 
-import com.virtualightning.dlna.SoapCommand;
-import com.virtualightning.dlna.constant.DeviceType;
-
 import org.xml.sax.SAXException;
 
 import javax.xml.transform.sax.TransformerHandler;
+
+import com.virtualightning.dlna.SoapCommand;
+import com.virtualightning.dlna.constant.DeviceType;
 
 public class GetPositionInfoCommand extends SoapCommand {
     private final int instanceId;

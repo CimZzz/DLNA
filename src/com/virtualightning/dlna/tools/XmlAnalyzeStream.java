@@ -55,7 +55,7 @@ public class XmlAnalyzeStream {
     }
 
 
-    XmlAnalyzeStream startElement(String elementName,Attributes attributes,boolean isFirstSearch){
+    XmlAnalyzeStream startElement(String elementName, Attributes attributes, boolean isFirstSearch){
         if(elementName.equals(this.elementName)) {
             if(callback != null)
                 callback.onElementStart(attributes);
@@ -171,7 +171,7 @@ public class XmlAnalyzeStream {
     }
 
 
-    public static class DefaultElement extends XmlAnalyzeStream{
+    public static class DefaultElement extends XmlAnalyzeStream {
         boolean isStart;
         boolean hasChild;
         String tempStreamName;

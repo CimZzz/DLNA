@@ -1,8 +1,5 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.constant.ErrorCode;
-import com.virtualightning.dlna.interfaces.XmlDecoder;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -12,6 +9,9 @@ import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+
+import com.virtualightning.dlna.constant.ErrorCode;
+import com.virtualightning.dlna.interfaces.XmlDecoder;
 
 /**
  * Created by CimZzz on 17/5/31.<br>
@@ -68,39 +68,38 @@ public class HTTPServer extends BaseServer {
 
     private void handleSocket(Socket socket) throws Exception {
         InputStream socketInput = socket.getInputStream();
-        HTTPHeader params = HTTPHeader.analyzeParams(socketInput);
+        HTTPHeader params = HTTPHeader.analyzeParams(socketInput,true);
         /*
          * 如果请求报文中包含Content-Length字段，则判断为订阅信息
          */
         if(params.contentLength != null) {
+            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
             String sid = params.otherHeaders.get("SID").trim();
-            long seq = Long.parseLong(params.otherHeaders.get("SEQ").trim());
-            String xml = null;
             Service service = dlnaContext.findServiceInfoBySID(sid);
 
-            //如果订阅号有效，解析XML文档，否则略过
-            if(service != null)
-                xml = DLNAAnalyzer.analyzeXMLFromStream(socketInput,params.contentLength);
+            if(service != null) {
+                long seq = Long.parseLong(params.otherHeaders.get("SEQ").trim());
+                //如果订阅号有效，解析XML文档，否则略过
+                String xml = DLNAAnalyzer.analyzeXMLFromStream(socketInput,params.contentLength);
+                //解析xml文件
+                if(xml != null) {
+                    System.out.println(xml);
+                    SubscribeEvent event = new SubscribeEvent();
+                    event.seq = seq;
+                    event.actionId = SubscribeEvent.ACTION_SUBSCRIBE_RESPONSE;
+                    event.feature = new HashMap<>();
+                    XmlDecoder<SubscribeEvent> xmlDecoder = dlnaContext.getSubscribeEventXmlDecoder();
+                    if(xmlDecoder == null)
+                        xmlDecoder = new XmlEventHandler(event);
+                    if(xmlDecoder.decoderXMLStream(event,new ByteArrayInputStream(xml.getBytes())))
+                        //解析xml成功，发送订阅事件
+                        dlnaContext.subscribeEvent(service,event);
+                }
+                dataOutputStream.writeBytes("HTTP/1.1 200 STATUS_OK\r\n\r\n");
+            } else dataOutputStream.writeBytes("HTTP/1.1 404 NOT_FOUND\r\n\r\n");
 
-            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-            dataOutputStream.writeBytes("HTTP/1.1 200 STATUS_OK\r\n\r\n");
             dataOutputStream.flush();
             socket.close();
-
-            //解析xml文件
-            if(xml != null) {
-                System.out.println(xml);
-                SubscribeEvent event = new SubscribeEvent();
-                event.seq = seq;
-                event.actionId = SubscribeEvent.ACTION_SUBSCRIBE_RESPONSE;
-                event.feature = new HashMap<>();
-                XmlDecoder<SubscribeEvent> xmlDecoder = dlnaContext.getSubscribeEventXmlDecoder();
-                if(xmlDecoder == null)
-                    xmlDecoder = new XmlEventHandler(event);
-                if(xmlDecoder.decoderXMLStream(event,new ByteArrayInputStream(xml.getBytes())))
-                    //解析xml成功，发送订阅事件
-                    dlnaContext.subscribeEvent(service,event);
-            }
         }
         /*
          * 否则，则认为是访问本地资源

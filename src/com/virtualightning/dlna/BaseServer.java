@@ -1,8 +1,8 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.constant.ErrorCode;
-
 import java.io.IOException;
+
+import com.virtualightning.dlna.constant.ErrorCode;
 
 public abstract class BaseServer {
     private boolean isRun;

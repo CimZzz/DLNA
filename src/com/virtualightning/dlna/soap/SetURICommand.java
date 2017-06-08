@@ -1,12 +1,12 @@
 package com.virtualightning.dlna.soap;
 
-import com.virtualightning.dlna.DLNAClient;
-import com.virtualightning.dlna.SoapCommand;
-import com.virtualightning.dlna.constant.DeviceType;
-
 import org.xml.sax.SAXException;
 
 import javax.xml.transform.sax.TransformerHandler;
+
+import com.virtualightning.dlna.DLNAClient;
+import com.virtualightning.dlna.SoapCommand;
+import com.virtualightning.dlna.constant.DeviceType;
 
 public class SetURICommand extends SoapCommand {
     private final int instanceId;
@@ -19,7 +19,7 @@ public class SetURICommand extends SoapCommand {
         System.out.println("SetURI : " + path);
     }
 
-    public SetURICommand(DLNAClient client,int instanceId,String path) {
+    public SetURICommand(DLNAClient client, int instanceId, String path) {
         this(instanceId,"http://" + client.getHostAddr() + ":" + client.getHTTPPort() + "/" + path);
     }
 

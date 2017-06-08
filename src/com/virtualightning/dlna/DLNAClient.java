@@ -1,9 +1,18 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.factory.ThreadPoolFactory;
-import com.virtualightning.dlna.interfaces.*;
-
 import java.io.File;
+
+import com.virtualightning.dlna.factory.ThreadPoolFactory;
+import com.virtualightning.dlna.interfaces.InetAddressGetter;
+import com.virtualightning.dlna.interfaces.OnBootstrapCompletedListener;
+import com.virtualightning.dlna.interfaces.OnCommandExecListener;
+import com.virtualightning.dlna.interfaces.OnDeviceQuitListener;
+import com.virtualightning.dlna.interfaces.OnErrorListener;
+import com.virtualightning.dlna.interfaces.OnFindDeviceListener;
+import com.virtualightning.dlna.interfaces.OnResourceRouteListener;
+import com.virtualightning.dlna.interfaces.OnServiceInfoListener;
+import com.virtualightning.dlna.interfaces.OnSubscribeEventListener;
+import com.virtualightning.dlna.interfaces.XmlDecoder;
 
 public class DLNAClient {
     private static final int DEFAULT_HTTP_PORT = 9090;//Default HTTP Server Port
@@ -195,7 +204,7 @@ public class DLNAClient {
     }
 
     //对指定设备执行操作
-    public void executeCommand(Service service,SoapCommand soapCommand) {
+    public void executeCommand(Service service, SoapCommand soapCommand) {
         synchronized (this) {
             if(state < STATE_START_COMPLETED)
                 return;
@@ -309,7 +318,7 @@ public class DLNAClient {
             onErrorListener.onError(errorCode,args);
     }
 
-    void commandExecResult(Service service,SoapCommand cmd,boolean isSuccess, String msg) {
+    void commandExecResult(Service service, SoapCommand cmd, boolean isSuccess, String msg) {
         synchronized (this) {
             if(state < STATE_START_COMPLETED)
                 return;

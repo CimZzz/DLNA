@@ -1,11 +1,12 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.tools.XmlAnalyzeStream;
 import org.xml.sax.Attributes;
 
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+
+import com.virtualightning.dlna.tools.XmlAnalyzeStream;
 
 public class XmlSDDHandler extends XmlBaseHandler<Service> {
     private final XmlAnalyzeStream.AnalyzerChain analyzerChain;
@@ -55,7 +56,7 @@ public class XmlSDDHandler extends XmlBaseHandler<Service> {
                 .addChildElement(new XmlAnalyzeStream("minor",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        service.specMajorVersion = Integer.parseInt(value);
+                        service.specMinorVersion = Integer.parseInt(value);
                     }
                 }));
 
@@ -197,7 +198,7 @@ public class XmlSDDHandler extends XmlBaseHandler<Service> {
     }
 
     @Override
-    public XmlAnalyzeStream.AnalyzerChain getAnalyzerChain() {
+    protected XmlAnalyzeStream.AnalyzerChain getAnalyzerChain() {
         return analyzerChain;
     }
 }

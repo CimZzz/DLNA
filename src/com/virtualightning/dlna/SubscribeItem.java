@@ -11,6 +11,7 @@ public class SubscribeItem {
     boolean isCancelSubscrbing;
 
     SubscribeItem() {
+        this.subscribeId = "";
         this.isAvaliable = false;
         this.isSubscrbing = false;
     }

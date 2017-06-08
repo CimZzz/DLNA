@@ -1,14 +1,14 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.constant.ErrorCode;
-import com.virtualightning.dlna.constant.SSDP;
-import com.virtualightning.dlna.tools.BoundedInputStream;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+
+import com.virtualightning.dlna.constant.ErrorCode;
+import com.virtualightning.dlna.constant.SSDP;
+import com.virtualightning.dlna.tools.BoundedInputStream;
 
 public class UnicastServer extends BaseServer {
     private DatagramSocket socket;

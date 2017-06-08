@@ -1,7 +1,8 @@
 package com.virtualightning.dlna;
 
-import com.virtualightning.dlna.tools.XmlAnalyzeStream;
 import org.xml.sax.Attributes;
+
+import com.virtualightning.dlna.tools.XmlAnalyzeStream;
 
 public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
     private Icon icon;
@@ -30,7 +31,7 @@ public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
                 .addChildElement(new XmlAnalyzeStream("minor",false,new XmlAnalyzeStream.OnElementCallback(true){
                     @Override
                     public void onElementValue(String value) {
-                        deviceInfo.specMajorVersion = Integer.parseInt(value);
+                        deviceInfo.specMinorVersion = Integer.parseInt(value);
                     }
                 }));
 
@@ -200,7 +201,7 @@ public class XmlDDDHandler extends XmlBaseHandler<DeviceInfo> {
     }
 
     @Override
-    XmlAnalyzeStream.AnalyzerChain getAnalyzerChain() {
+    protected XmlAnalyzeStream.AnalyzerChain getAnalyzerChain() {
         return analyzerChain;
     }
 }
