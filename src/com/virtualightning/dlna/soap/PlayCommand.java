@@ -23,14 +23,7 @@ public class PlayCommand extends SoapCommand {
 
     @Override
     protected void writeCommand(TransformerHandler handler) throws SAXException {
-        String instanceIdStr = String.valueOf(instanceId);
-        startElement("InstanceID");
-        handler.characters(instanceIdStr.toCharArray(),0,instanceIdStr.length());
-        endElement("InstanceID");
-
-        String speedStr = String.valueOf(speed);
-        startElement("Speed");
-        handler.characters(speedStr.toCharArray(),0,speedStr.length());
-        endElement("Speed");
+        simpleElement("InstanceID",String.valueOf(instanceId));
+        simpleElement("Speed",String.valueOf(speed));
     }
 }

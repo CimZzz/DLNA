@@ -27,16 +27,8 @@ public class SetURICommand extends SoapCommand {
 
     @Override
     protected void writeCommand(TransformerHandler handler) throws SAXException {
-        String instanceIdStr = String.valueOf(instanceId);
-        startElement("InstanceID");
-        handler.characters(instanceIdStr.toCharArray(),0,instanceIdStr.length());
-        endElement("InstanceID");
-
-        startElement("CurrentURI");
-        handler.characters(path.toCharArray(),0,path.length());
-        endElement("CurrentURI");
-
-        startElement("CurrentURIMetaData");
-        endElement("CurrentURIMetaData");
+        simpleElement("InstanceID",String.valueOf(instanceId));
+        simpleElement("CurrentURI",path);
+        simpleElement("CurrentURIMetaData");
     }
 }

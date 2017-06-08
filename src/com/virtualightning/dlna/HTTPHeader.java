@@ -1,11 +1,10 @@
 package com.virtualightning.dlna;
 
+import com.virtualightning.dlna.tools.HeaderReader;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-
-import com.virtualightning.dlna.tools.HeaderReader;
 
 /**
  * Created by CimZzz on 17/5/31.<br>
@@ -30,10 +29,9 @@ public class HTTPHeader {
         return analyzeParams(inputStream,null,false);
     }
 
-    static HTTPHeader analyzeParams(InputStream inputStream, boolean otherUpper) throws IOException {
+    static HTTPHeader analyzeParams(InputStream inputStream,boolean otherUpper) throws IOException {
         return analyzeParams(inputStream,null,otherUpper);
     }
-
 
     static HTTPHeader analyzeParams(InputStream inputStream, String needMethod , boolean otherUpper) throws IOException {
         HeaderReader reader = new HeaderReader(inputStream);
@@ -43,14 +41,14 @@ public class HTTPHeader {
         String splitArray[] = new String[2];
         /*Read方法行*/
         line = reader.readLine();
-//        System.out.println(line);
+        if(line == null)
+            return null;
         String methodLine[] = line.split(" ");
         params.method = methodLine[0];
         params.methodPath = methodLine[1];
         if(needMethod != null && !needMethod.equals(params.method))
             return null;
         while ((line = reader.readLine()) != null && !line.equals("")) {
-//            System.out.println(line);
             int colonIndex = line.indexOf(':');
             splitArray[0] = line.substring(0,colonIndex);
             splitArray[1] = line.substring(colonIndex + 1,line.length());

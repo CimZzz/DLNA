@@ -15,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.virtualightning.dlna.factory.ThreadPoolFactory;
+import com.virtualightning.dlna.interfaces.DeviceFilter;
 import com.virtualightning.dlna.interfaces.InetAddressGetter;
 import com.virtualightning.dlna.interfaces.XmlDecoder;
 import com.virtualightning.dlna.tools.BoundedInputStream;
@@ -25,6 +26,7 @@ public class DLNAContext {
     private DLNAClient dlnaClient;//DLNA客户端
     private ExecutorService threadPool;//线程池
     private XmlDecoder<SubscribeEvent> subscribeEventXmlDecoder;//订阅事件XML Decoder
+    private DeviceFilter deviceFilter;//设备过滤器
 
     boolean useDebugMode;//是否使用Debug模式
     String hostAddr;//主机地址
@@ -62,23 +64,24 @@ public class DLNAContext {
                 }
             }
         };
-        /*3秒执行一次*/
-        timeOutTimer.schedule(timerTask,0,3000);
     }
 
     /* 生命周期方法 */
 
-    void init(final TaskStatistic taskStatistic, ThreadPoolFactory factory) {
-        if(factory == null)
+    void init(final TaskStatistic taskStatistic) {
+        if(dlnaClient.threadPoolFactory == null)
             threadPool = Executors.newCachedThreadPool();
-        else threadPool = factory.createThreadPool();
+        else threadPool = dlnaClient.threadPoolFactory.createThreadPool();
         subscribeEventXmlDecoder = dlnaClient.subscribeEventXmlDecoder;
+        deviceFilter = dlnaClient.deviceFilter;
+
+        /*3秒执行一次*/
+        timeOutTimer.schedule(timerTask,0,3000);
         execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     InetAddressGetter getter = dlnaClient.inetAddressGetter;
-
                     if(getter != null)
                         hostAddr = getter.getInetAddress();
                     else hostAddr = InetAddress.getLocalHost().getHostAddress();
@@ -108,6 +111,7 @@ public class DLNAContext {
         }
         dlnaClient = null;
         subscribeEventXmlDecoder = null;
+        deviceFilter = null;
         devicesPool.clear();
         subscribePool.clear();
     }
@@ -134,6 +138,11 @@ public class DLNAContext {
                     connection.outputCompleted();
 
                     HTTPHeader httpHeader = HTTPHeader.analyzeParams(connection.getInputStream());
+
+                    if(httpHeader == null) {
+                        dlnaClient.commandExecResult(service,soapCommand,false,null);
+                        return;
+                    }
 
                     String msg = DLNAAnalyzer.analyzeXMLFromStream(connection.getInputStream(),httpHeader.contentLength);
 
@@ -339,6 +348,10 @@ public class DLNAContext {
     //比对设备池中是否存在相同USN并且尚未过期的设备，不存在则去获取DDD文档，视为新设备
     //如果消息来源是多播，则会刷新激活时间
     void findNewDevice(DeviceInfo deviceInfo,boolean fromMulticast) {
+        //过滤设备
+        if(deviceFilter != null && !deviceFilter.isNeedDeviceType(deviceInfo,false))
+            return;
+
         synchronized (deviceLocker) {
             DeviceInfo existDevice = devicesPool.get(deviceInfo.USN);
             if(existDevice != null && System.currentTimeMillis() - existDevice.lastActiveTime < existDevice.cacheTime) {
@@ -366,6 +379,12 @@ public class DLNAContext {
             if(!decoder.decoderXMLStream(null,boundedInputStream))
                 return;
 
+            if(deviceFilter != null && !deviceFilter.isNeedDeviceType(deviceInfo,true)) {
+                synchronized (deviceLocker) {
+                    devicesPool.remove(deviceInfo.USN);
+                    return;
+                }
+            }
 
             if(dlnaClient != null)
                 dlnaClient.findNewDevice(deviceInfo);
@@ -383,6 +402,10 @@ public class DLNAContext {
 
     //设备注销
     void deviceQuit(DeviceInfo deviceInfo) {
+        //过滤设备
+        if(deviceFilter != null && !deviceFilter.isNeedDeviceType(deviceInfo,false))
+            return;
+
         synchronized (deviceLocker) {
             if(devicesPool.containsKey(deviceInfo.USN))
                 deviceInfo = devicesPool.remove(deviceInfo.USN);

@@ -70,6 +70,26 @@ public abstract class SoapCommand {
         handler.endElement("","",elementName);
     }
 
+    protected final void simpleElement(String elementName) throws SAXException {
+        simpleElement(elementName,null,null);
+    }
+
+    protected final void simpleElement(String elementName,AttributesImpl atts) throws SAXException {
+        simpleElement(elementName,atts,null);
+    }
+
+    protected final void simpleElement(String elementName,String value) throws SAXException {
+        simpleElement(elementName,null,value);
+    }
+
+    protected final void simpleElement(String elementName,AttributesImpl atts,String value) throws SAXException {
+        startElement(elementName,atts);
+        if(value != null)
+            handler.characters(value.toCharArray(), 0, value.length());
+
+        endElement(elementName);
+    }
+
     protected final void newAttributes() {
         atts = new AttributesImpl();
     }

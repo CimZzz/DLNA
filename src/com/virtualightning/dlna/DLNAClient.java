@@ -3,16 +3,7 @@ package com.virtualightning.dlna;
 import java.io.File;
 
 import com.virtualightning.dlna.factory.ThreadPoolFactory;
-import com.virtualightning.dlna.interfaces.InetAddressGetter;
-import com.virtualightning.dlna.interfaces.OnBootstrapCompletedListener;
-import com.virtualightning.dlna.interfaces.OnCommandExecListener;
-import com.virtualightning.dlna.interfaces.OnDeviceQuitListener;
-import com.virtualightning.dlna.interfaces.OnErrorListener;
-import com.virtualightning.dlna.interfaces.OnFindDeviceListener;
-import com.virtualightning.dlna.interfaces.OnResourceRouteListener;
-import com.virtualightning.dlna.interfaces.OnServiceInfoListener;
-import com.virtualightning.dlna.interfaces.OnSubscribeEventListener;
-import com.virtualightning.dlna.interfaces.XmlDecoder;
+import com.virtualightning.dlna.interfaces.*;
 
 public class DLNAClient {
     private static final int DEFAULT_HTTP_PORT = 9090;//Default HTTP Server Port
@@ -39,9 +30,10 @@ public class DLNAClient {
     private boolean useDebugMode;//是否使用测试模式（会额外解析非必要的描述文件，减慢运行速度并且内存占用量大，仅供测试使用）
     private int httpPort;//HTTP服务器监听端口
     private int unicastPort;//单播服务器监听端口
-    private ThreadPoolFactory threadPoolFactory;//线程池创建工厂
+    ThreadPoolFactory threadPoolFactory;//线程池创建工厂
     XmlDecoder<SubscribeEvent> subscribeEventXmlDecoder;//自定义订阅时间XML Decoder
     InetAddressGetter inetAddressGetter;//获取地址方式接口
+    DeviceFilter deviceFilter;//设备过滤器
 
     /* DLNAClient 外部接口 */
     private OnBootstrapCompletedListener onBootstrapCompletedListener;//启动完成回调接口
@@ -106,7 +98,7 @@ public class DLNAClient {
             httpServer = new HTTPServer(dlnaContext,httpPort);
             unicastServer = new UnicastServer(dlnaContext,unicastPort);
             multicastServer = new MulticastServer(dlnaContext);
-            dlnaContext.init(bootStrapStatistic,threadPoolFactory);
+            dlnaContext.init(bootStrapStatistic);
             httpServer.startServer(bootStrapStatistic);
             unicastServer.startServer(bootStrapStatistic);
             multicastServer.startServer(bootStrapStatistic);
@@ -392,6 +384,11 @@ public class DLNAClient {
 
         public Builder customSubEventDecoder(XmlDecoder<SubscribeEvent> subscribeEventXmlDecoder) {
             client.subscribeEventXmlDecoder = subscribeEventXmlDecoder;
+            return this;
+        }
+
+        public Builder customDeviceFilter(DeviceFilter deviceFilter) {
+            client.deviceFilter = deviceFilter;
             return this;
         }
 

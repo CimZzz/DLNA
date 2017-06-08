@@ -17,9 +17,6 @@ public class StopCommand extends SoapCommand {
 
     @Override
     protected void writeCommand(TransformerHandler handler) throws SAXException {
-        String instanceIdStr = String.valueOf(instanceId);
-        startElement("InstanceID");
-        handler.characters(instanceIdStr.toCharArray(),0,instanceIdStr.length());
-        endElement("InstanceID");
+        simpleElement("InstanceID",String.valueOf(instanceId));
     }
 }

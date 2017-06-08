@@ -11,12 +11,14 @@ public class HeaderReader {
     }
 
     public String readLine() throws IOException {
-        StringBuffer buffer = new StringBuffer(30);
+        StringBuilder buffer = new StringBuilder(50);
         boolean isR = false;
         boolean isN = false;
         while (true) {
             int readChar = stream.read();
-            if (readChar == '\r')
+            if(readChar == -1)
+                return buffer.length() > 0 ? buffer.toString() : null;
+            else if (readChar == '\r')
                 isR = true;
             else if(readChar == '\n')
                 isN = true;
