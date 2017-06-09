@@ -159,10 +159,8 @@ public class DLNAContext {
             @Override
             public void run() {
                 XmlDecoder<Service> decoder = getServDescDocXmlDecoder();
-                if(decoder == null) {
-                    error(ErrorCode.SERVER_INFO_NO_DECODER_FAILED,null);
-                    return;
-                }
+                if(decoder == null)
+                    decoder = new XmlSDDHandler(service);
                 HttpURLConnection connection = null;
                 try {
                     String path = service.SCPDURL;
